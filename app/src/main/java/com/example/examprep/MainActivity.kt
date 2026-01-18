@@ -7,6 +7,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,7 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -93,33 +97,44 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Observe courses to track successful loads
-        viewModel.courses.observe(this) { courses ->
-            if (courses.isNotEmpty()) {
-                hasLoadedSuccessfully = true
-            }
-        }
-
-        // Observe error messages
-        viewModel.errorMessage.observe(this) { errorMessage ->
-            errorMessage?.let {
-                // Only show error toast if we have no cached data to display
-                val currentCourses = viewModel.courses.value ?: emptyList()
-                if (currentCourses.isEmpty()) {
-                    Toast.makeText(this, it, Toast.LENGTH_LONG).show()
-                } else {
-                    // We have cached data, just log the error
-                    Log.d("MainActivity", "Error loading from network, showing cached data: $it")
+        // Collect StateFlows using lifecycleScope
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Collect courses to track successful loads
+                launch {
+                    viewModel.courses.collect { courses ->
+                        if (courses.isNotEmpty()) {
+                            hasLoadedSuccessfully = true
+                        }
+                    }
                 }
-                viewModel.clearError()
-            }
-        }
 
-        // Observe operation success
-        viewModel.operationSuccess.observe(this) { success ->
-            if (success) {
-                Toast.makeText(this, "Course deleted successfully", Toast.LENGTH_SHORT).show()
-                viewModel.resetOperationSuccess()
+                // Collect error messages
+                launch {
+                    viewModel.errorMessage.collect { errorMessage ->
+                        errorMessage?.let {
+                            // Only show error toast if we have no cached data to display
+                            val currentCourses = viewModel.courses.value
+                            if (currentCourses.isEmpty()) {
+                                Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show()
+                            } else {
+                                // We have cached data, just log the error
+                                Log.d("MainActivity", "Error loading from network, showing cached data: $it")
+                            }
+                            viewModel.clearError()
+                        }
+                    }
+                }
+
+                // Collect operation success
+                launch {
+                    viewModel.operationSuccess.collect { success ->
+                        if (success) {
+                            Toast.makeText(this@MainActivity, "Course deleted successfully", Toast.LENGTH_SHORT).show()
+                            viewModel.resetOperationSuccess()
+                        }
+                    }
+                }
             }
         }
     }
@@ -161,8 +176,8 @@ fun MainScreen(
     onDeleteCourse: (Course) -> Unit,
     onRetry: () -> Unit
 ) {
-    val courses by viewModel.courses.observeAsState(emptyList())
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val courses by viewModel.courses.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showDeleteDialog by remember { mutableStateOf<Course?>(null) }
 

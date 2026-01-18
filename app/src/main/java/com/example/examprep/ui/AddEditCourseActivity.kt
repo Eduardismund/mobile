@@ -5,6 +5,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,31 +52,40 @@ class AddEditCourseActivity : ComponentActivity() {
             }
         }
 
-        // Observe errors
-        viewModel.errorMessage.observe(this) { error ->
-            error?.let {
-                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+        // Collect StateFlows
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Collect errors
+                launch {
+                    viewModel.errorMessage.collect { error ->
+                        error?.let {
+                            Toast.makeText(this@AddEditCourseActivity, it, Toast.LENGTH_LONG).show()
 
-                if (it.contains("saved locally") || it.contains("Will sync")) {
-                    Toast.makeText(
-                        this,
-                        "Course saved locally. Will sync when online.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    setResult(RESULT_OK)
-                    finish()
+                            if (it.contains("saved locally") || it.contains("Will sync")) {
+                                Toast.makeText(
+                                    this@AddEditCourseActivity,
+                                    "Course saved locally. Will sync when online.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                setResult(RESULT_OK)
+                                finish()
+                            }
+
+                            viewModel.clearError()
+                        }
+                    }
                 }
 
-                viewModel.clearError()
-            }
-        }
-
-        // Observe operation success
-        viewModel.operationSuccess.observe(this) { success ->
-            if (success) {
-                Toast.makeText(this, "Course saved successfully", Toast.LENGTH_SHORT).show()
-                setResult(RESULT_OK)
-                finish()
+                // Collect operation success
+                launch {
+                    viewModel.operationSuccess.collect { success ->
+                        if (success) {
+                            Toast.makeText(this@AddEditCourseActivity, "Course saved successfully", Toast.LENGTH_SHORT).show()
+                            setResult(RESULT_OK)
+                            finish()
+                        }
+                    }
+                }
             }
         }
     }
@@ -85,7 +98,7 @@ fun AddEditCourseScreen(
     isEdit: Boolean,
     onNavigateBack: () -> Unit
 ) {
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var name by remember { mutableStateOf("Mobile App Development") }
     var instructor by remember { mutableStateOf("Dr. John Smith") }

@@ -2,12 +2,13 @@ package com.example.examprep.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.examprep.database.AppDatabase
 import com.example.examprep.model.Course
 import com.example.examprep.repository.CourseRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CourseViewModel(application: Application) : AndroidViewModel(application) {
@@ -19,23 +20,23 @@ class CourseViewModel(application: Application) : AndroidViewModel(application) 
         repository = CourseRepository(courseDao)
     }
 
-    private val _courses = MutableLiveData<List<Course>>()
-    val courses: LiveData<List<Course>> = _courses
+    private val _courses = MutableStateFlow<List<Course>>(emptyList())
+    val courses: StateFlow<List<Course>> = _courses.asStateFlow()
 
-    private val _course = MutableLiveData<Course?>()
-    val course: LiveData<Course?> = _course
+    private val _course = MutableStateFlow<Course?>(null)
+    val course: StateFlow<Course?> = _course.asStateFlow()
 
-    private val _isLoading = MutableLiveData<Boolean>()
-    val isLoading: LiveData<Boolean> = _isLoading
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    private val _operationSuccess = MutableLiveData<Boolean>()
-    val operationSuccess: LiveData<Boolean> = _operationSuccess
+    private val _operationSuccess = MutableStateFlow(false)
+    val operationSuccess: StateFlow<Boolean> = _operationSuccess.asStateFlow()
 
-    private val _allCoursesForAnalysis = MutableLiveData<List<Course>>()
-    val allCoursesForAnalysis: LiveData<List<Course>> = _allCoursesForAnalysis
+    private val _allCoursesForAnalysis = MutableStateFlow<List<Course>>(emptyList())
+    val allCoursesForAnalysis: StateFlow<List<Course>> = _allCoursesForAnalysis.asStateFlow()
 
     fun loadCourses() {
         viewModelScope.launch {

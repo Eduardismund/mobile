@@ -6,6 +6,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,19 +75,28 @@ class CourseDetailActivity : ComponentActivity() {
             }
         }
 
-        // Observe errors
-        viewModel.errorMessage.observe(this) { error ->
-            error?.let {
-                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
-                viewModel.clearError()
-            }
-        }
+        // Collect StateFlows
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Collect errors
+                launch {
+                    viewModel.errorMessage.collect { error ->
+                        error?.let {
+                            Toast.makeText(this@CourseDetailActivity, it, Toast.LENGTH_LONG).show()
+                            viewModel.clearError()
+                        }
+                    }
+                }
 
-        // Observe operation success
-        viewModel.operationSuccess.observe(this) { success ->
-            if (success) {
-                Toast.makeText(this, "Course deleted successfully", Toast.LENGTH_SHORT).show()
-                finish()
+                // Collect operation success
+                launch {
+                    viewModel.operationSuccess.collect { success ->
+                        if (success) {
+                            Toast.makeText(this@CourseDetailActivity, "Course deleted successfully", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                    }
+                }
             }
         }
     }
@@ -97,8 +110,8 @@ fun CourseDetailScreen(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val course by viewModel.course.observeAsState()
-    val isLoading by viewModel.isLoading.observeAsState(false)
+    val course by viewModel.course.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
 

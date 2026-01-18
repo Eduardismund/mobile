@@ -8,6 +8,10 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,11 +61,15 @@ class StudentActivity : ComponentActivity() {
             }
         }
 
-        // Observe errors
-        viewModel.errorMessage.observe(this) { error ->
-            error?.let {
-                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
-                viewModel.clearError()
+        // Collect errors
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.errorMessage.collect { error ->
+                    error?.let {
+                        Toast.makeText(this@StudentActivity, it, Toast.LENGTH_LONG).show()
+                        viewModel.clearError()
+                    }
+                }
             }
         }
     }
@@ -80,7 +88,7 @@ fun StudentScreen(
     viewModel: CourseViewModel,
     onNavigateBack: () -> Unit
 ) {
-    val allCourses by viewModel.allCoursesForAnalysis.observeAsState(emptyList())
+    val allCourses by viewModel.allCoursesForAnalysis.collectAsStateWithLifecycle()
 
     val ongoingCourses = remember(allCourses) {
         allCourses.filter { it.status.lowercase() == "ongoing" }
