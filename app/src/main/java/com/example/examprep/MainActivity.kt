@@ -3,238 +3,406 @@ package com.example.examprep
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.view.WindowManager
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.example.examprep.adapter.RecipeAdapter
-import com.example.examprep.ui.AddEditRecipeActivity
-import com.example.examprep.ui.ExploreActivity
-import com.example.examprep.ui.InsightsActivity
-import com.example.examprep.ui.RecipeDetailActivity
-import com.example.examprep.viewmodel.RecipeViewModel
-import com.example.examprep.websocket.RecipeWebSocketClient
+import com.example.examprep.model.Course
+import com.example.examprep.ui.AddEditCourseActivity
+import com.example.examprep.ui.AnalyticsActivity
+import com.example.examprep.ui.CourseDetailActivity
+import com.example.examprep.ui.StudentActivity
+import com.example.examprep.ui.theme.*
+import com.example.examprep.viewmodel.CourseViewModel
+import com.example.examprep.websocket.CourseWebSocketClient
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var swipeRefresh: SwipeRefreshLayout
-    private lateinit var emptyState: LinearLayout
-    private lateinit var btnRetry: Button
-    private lateinit var btnAddRecipe: Button
-    private lateinit var btnMonthlyRatings: Button
-    private lateinit var btnTopCategories: Button
-    private lateinit var viewModel: RecipeViewModel
-    private lateinit var adapter: RecipeAdapter
-    private var webSocketClient: RecipeWebSocketClient? = null
-    private var isInitialLoad = true
+    private lateinit var viewModel: CourseViewModel
+    private var webSocketClient: CourseWebSocketClient? = null
     private var hasLoadedSuccessfully = false
 
-    // Activity result launcher for AddEditRecipeActivity
-    private val addRecipeLauncher = registerForActivityResult(
+    private val addCourseLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // When returning from AddEditRecipeActivity, load recipes from cache
-        // The WebSocket broadcast + cache save happens asynchronously,
-        // so we give it a moment then load from cache
         if (result.resultCode == RESULT_OK) {
-            Log.d("MainActivity", "Returned from AddEditRecipeActivity with success")
-            // Small delay to allow WebSocket to process and cache the new recipe
-            recyclerView.postDelayed({
-                viewModel.loadRecipesFromCache()
-            }, 300) // 300ms delay
+            Log.d("MainActivity", "Returned from AddEditCourseActivity with success")
+            // No need to reload - WebSocket will notify and update the list automatically
+            // If offline, the course is already cached and will appear on next app restart
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
         Log.d("MainActivity", "onCreate")
 
-        // Handle window insets for bottom buttons to avoid overlap with navigation bar
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.bottomButtons)) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                view.paddingTop,
-                view.paddingRight,
-                systemBars.bottom + 8
-            )
-            insets
-        }
+        viewModel = ViewModelProvider(this)[CourseViewModel::class.java]
 
-        // Initialize views
-        recyclerView = findViewById(R.id.recyclerViewRecipes)
-        progressBar = findViewById(R.id.progressBar)
-        swipeRefresh = findViewById(R.id.swipeRefresh)
-        emptyState = findViewById(R.id.emptyState)
-        btnRetry = findViewById(R.id.btnRetry)
-        btnAddRecipe = findViewById(R.id.btnAddRecipe)
-        btnMonthlyRatings = findViewById(R.id.btnMonthlyRatings)
-        btnTopCategories = findViewById(R.id.btnTopCategories)
+        // Load courses on initial load
+        viewModel.loadCourses()
 
-        // Setup ViewModel
-        viewModel = ViewModelProvider(this)[RecipeViewModel::class.java]
+        setupWebSocket()
 
-        // Setup RecyclerView with click listener
-        adapter = RecipeAdapter(emptyList(),
-            onItemClick = { recipe ->
-                val intent = Intent(this, RecipeDetailActivity::class.java)
-                intent.putExtra("RECIPE", recipe)
-                startActivity(intent)
-            },
-            onDeleteClick = { recipe ->
-                showDeleteConfirmation(recipe)
+        setContent {
+            CourseManagerTheme {
+                MainScreen(
+                    viewModel = viewModel,
+                    onAddCourse = {
+                        addCourseLauncher.launch(Intent(this, AddEditCourseActivity::class.java))
+                    },
+                    onNavigateToStudent = {
+                        startActivity(Intent(this, StudentActivity::class.java))
+                    },
+                    onNavigateToAnalytics = {
+                        startActivity(Intent(this, AnalyticsActivity::class.java))
+                    },
+                    onCourseClick = { course ->
+                        val intent = Intent(this, CourseDetailActivity::class.java)
+                        intent.putExtra("COURSE_ID", course.id)
+                        startActivity(intent)
+                    },
+                    onDeleteCourse = { course ->
+                        viewModel.deleteCourse(course.id)
+                    },
+                    onRetry = {
+                        viewModel.loadCourses()
+                    }
+                )
             }
-        )
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = adapter
-
-        // Button click listeners
-        btnRetry.setOnClickListener {
-            isInitialLoad = true
-            viewModel.loadRecipes()
         }
 
-        btnAddRecipe.setOnClickListener {
-            addRecipeLauncher.launch(Intent(this, AddEditRecipeActivity::class.java))
-        }
-
-        btnMonthlyRatings.setOnClickListener {
-            startActivity(Intent(this, ExploreActivity::class.java))
-        }
-
-        btnTopCategories.setOnClickListener {
-            startActivity(Intent(this, InsightsActivity::class.java))
-        }
-
-        // Setup SwipeRefresh
-        swipeRefresh.setColorSchemeResources(
-            R.color.primary,
-            R.color.accent,
-            R.color.primary_dark
-        )
-        swipeRefresh.setOnRefreshListener {
-            viewModel.loadRecipes()
-        }
-
-        // Observe recipes data
-        viewModel.recipes.observe(this) { recipes ->
-            adapter.updateRecipes(recipes)
-
-            // Check if this is first successful load
-            if (recipes.isNotEmpty() && isInitialLoad) {
+        // Observe courses to track successful loads
+        viewModel.courses.observe(this) { courses ->
+            if (courses.isNotEmpty()) {
                 hasLoadedSuccessfully = true
-                isInitialLoad = false
-            }
-
-            updateEmptyState(recipes.isEmpty())
-        }
-
-        // Observe loading state
-        viewModel.isLoading.observe(this) { isLoading ->
-            if (!swipeRefresh.isRefreshing) {
-                progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            }
-            if (!isLoading) {
-                swipeRefresh.isRefreshing = false
             }
         }
 
         // Observe error messages
         viewModel.errorMessage.observe(this) { errorMessage ->
             errorMessage?.let {
-                // On initial load with error, show more prominent message
-                if (isInitialLoad && !hasLoadedSuccessfully) {
-                    Toast.makeText(
-                        this,
-                        "⚠️ Cannot connect to server. Please check if the server is running and try again.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
+                // Only show error toast if we have no cached data to display
+                val currentCourses = viewModel.courses.value ?: emptyList()
+                if (currentCourses.isEmpty()) {
                     Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+                } else {
+                    // We have cached data, just log the error
+                    Log.d("MainActivity", "Error loading from network, showing cached data: $it")
                 }
                 viewModel.clearError()
             }
         }
 
-        // Observe operation success (for delete operations)
+        // Observe operation success
         viewModel.operationSuccess.observe(this) { success ->
             if (success) {
-                Toast.makeText(this, "✅ Recipe deleted successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Course deleted successfully", Toast.LENGTH_SHORT).show()
                 viewModel.resetOperationSuccess()
             }
         }
-
-        // Load recipes only on initial load
-        if (isInitialLoad) {
-            viewModel.loadRecipes()
-            isInitialLoad = false
-        }
-
-        // Setup WebSocket for real-time notifications
-        setupWebSocket()
     }
 
     private fun setupWebSocket() {
         Log.d("MainActivity", "Setting up WebSocket connection...")
 
-        webSocketClient = RecipeWebSocketClient { newRecipe ->
+        webSocketClient = CourseWebSocketClient { newCourse ->
             runOnUiThread {
-                Log.d("MainActivity", "🎉 New recipe received via WebSocket: ${newRecipe.title}")
+                Log.d("MainActivity", "New course received via WebSocket: ${newCourse.name}")
                 Toast.makeText(
                     this,
-                    "🆕 New recipe added: ${newRecipe.title} (${newRecipe.category})",
+                    "New course added: ${newCourse.name} by ${newCourse.instructor}\n${newCourse.description}",
                     Toast.LENGTH_LONG
                 ).show()
-                // Add to local list without server fetch
-                viewModel.addRecipeToList(newRecipe)
+                viewModel.addCourseToList(newCourse)
             }
         }
-        // Connect to WebSocket (use same IP as API)
-        val wsUrl = "ws://192.168.1.194:2528"
+
+        val wsUrl = "ws://192.168.1.194:2506"
         Log.d("MainActivity", "Connecting to WebSocket at: $wsUrl")
         webSocketClient?.connect(wsUrl)
-    }
-
-    private fun showDeleteConfirmation(recipe: com.example.examprep.model.Recipe) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Recipe")
-            .setMessage("Are you sure you want to delete '${recipe.title}'?")
-            .setPositiveButton("Delete") { _, _ ->
-                // Just call delete - success message will be shown by observer
-                viewModel.deleteRecipe(recipe.id)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun updateEmptyState(isEmpty: Boolean) {
-        emptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
-        recyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Don't reload here - we only load once at app start
-        // Subsequent updates come from WebSocket or explicit refresh
     }
 
     override fun onDestroy() {
         super.onDestroy()
         webSocketClient?.disconnect()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(
+    viewModel: CourseViewModel,
+    onAddCourse: () -> Unit,
+    onNavigateToStudent: () -> Unit,
+    onNavigateToAnalytics: () -> Unit,
+    onCourseClick: (Course) -> Unit,
+    onDeleteCourse: (Course) -> Unit,
+    onRetry: () -> Unit
+) {
+    val courses by viewModel.courses.observeAsState(emptyList())
+    val isLoading by viewModel.isLoading.observeAsState(false)
+
+    var showDeleteDialog by remember { mutableStateOf<Course?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Instructor - Course Management") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Primary,
+                    titleContentColor = Color.White
+                )
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddCourse,
+                containerColor = Primary
+            ) {
+                Icon(Icons.Filled.Add, "Add Course", tint = Color.White)
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Top buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onNavigateToStudent,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent
+                    )
+                ) {
+                    Text("Student View")
+                }
+                Button(
+                    onClick = onNavigateToAnalytics,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Accent
+                    )
+                ) {
+                    Text("Analytics")
+                }
+            }
+
+            // Content area
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (isLoading && courses.isEmpty()) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Primary
+                    )
+                } else if (courses.isEmpty()) {
+                    EmptyState(onRetry = onRetry)
+                } else {
+                    SwipeRefresh(
+                        state = rememberSwipeRefreshState(isLoading),
+                        onRefresh = { viewModel.loadCourses() }
+                    ) {
+                        LazyColumn(
+                            contentPadding = PaddingValues(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(courses) { course ->
+                                CourseItem(
+                                    course = course,
+                                    onClick = { onCourseClick(course) },
+                                    onDeleteClick = { showDeleteDialog = course }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete confirmation dialog
+    showDeleteDialog?.let { course ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete Course") },
+            text = { Text("Are you sure you want to delete '${course.name}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteCourse(course)
+                        showDeleteDialog = null
+                    }
+                ) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun CourseItem(
+    course: Course,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = course.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    StatusBadge(status = course.status)
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Instructor: ${course.instructor}",
+                    fontSize = 13.sp,
+                    color = TextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "${course.duration}hrs • ${course.students} students",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Primary
+                )
+            }
+
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Delete",
+                    tint = ErrorRed
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StatusBadge(status: String) {
+    val backgroundColor = when (status.lowercase()) {
+        "ongoing" -> StatusOngoing
+        "upcoming" -> StatusUpcoming
+        "completed" -> StatusCompleted
+        else -> Primary
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor
+    ) {
+        Text(
+            text = status.uppercase(),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun EmptyState(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "📚",
+            fontSize = 64.sp
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "No courses available",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Check your connection and try again",
+            fontSize = 14.sp,
+            color = TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Primary
+            )
+        ) {
+            Text("Retry")
+        }
     }
 }

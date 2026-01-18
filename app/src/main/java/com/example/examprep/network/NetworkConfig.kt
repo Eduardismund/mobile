@@ -20,7 +20,7 @@ object NetworkConfig {
     private const val SERVER_IP = "192.168.1.194"
 
     // Server port (don't change this)
-    private const val SERVER_PORT = "2528"
+    private const val SERVER_PORT = "2506"
 
     // Full base URL
     const val BASE_URL = "http://$SERVER_IP:$SERVER_PORT/"

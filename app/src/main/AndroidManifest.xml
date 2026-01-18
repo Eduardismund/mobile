@@ -25,24 +25,30 @@
             </intent-filter>
         </activity>
 
+        <!-- Course Management Activities -->
         <activity
-            android:name=".ui.RecipeDetailActivity"
+            android:name=".ui.CourseDetailActivity"
             android:exported="false"
+            android:label="@string/course_details"
             android:parentActivityName=".MainActivity" />
 
         <activity
-            android:name=".ui.AddEditRecipeActivity"
+            android:name=".ui.AddEditCourseActivity"
             android:exported="false"
+            android:label="@string/add_course"
+            android:parentActivityName=".MainActivity"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.StudentActivity"
+            android:exported="false"
+            android:label="@string/student_section"
             android:parentActivityName=".MainActivity" />
 
         <activity
-            android:name=".ui.ExploreActivity"
+            android:name=".ui.AnalyticsActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity" />
-
-        <activity
-            android:name=".ui.InsightsActivity"
-            android:exported="false"
+            android:label="@string/analytics_section"
             android:parentActivityName=".MainActivity" />
 
     </application>

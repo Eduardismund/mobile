@@ -35,16 +35,16 @@ Node.js Server
 Open **PowerShell as Administrator** and run:
 
 ```powershell
-netsh advfirewall firewall add rule name="Node Server Port 2528" dir=in action=allow protocol=TCP localport=2528
 ```
 
-This allows incoming connections on port 2528.
+This allows incoming connections on port 2528.netsh advfirewall firewall add rule name="Node Server Port 2506" dir=in action=allow protocol=TCP localport=2506
+
 
 ### 2. Port Proxy Configuration
 In **PowerShell as Administrator**, run:
 
 ```powershell
-netsh interface portproxy add v4tov4 listenport=2528 listenaddress=0.0.0.0 connectport=2528 connectaddress=172.23.137.190
+netsh interface portproxy add v4tov4 listenport=2506 listenaddress=0.0.0.0 connectport=2506 connectaddress=172.23.137.190
 ```
 
 This forwards traffic from Windows (192.168.1.194:2528) to WSL (172.23.137.190:2528).

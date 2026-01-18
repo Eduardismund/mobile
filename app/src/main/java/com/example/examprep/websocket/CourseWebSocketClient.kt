@@ -3,14 +3,14 @@ package com.example.examprep.websocket
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.example.examprep.model.Recipe
+import com.example.examprep.model.Course
 import com.google.gson.Gson
 import okhttp3.*
 
-class RecipeWebSocketClient(
-    private val onRecipeAdded: (Recipe) -> Unit
+class CourseWebSocketClient(
+    private val onCourseAdded: (Course) -> Unit
 ) {
-    private val TAG = "RecipeWebSocket"
+    private val TAG = "CourseWebSocket"
     private var webSocket: WebSocket? = null
     private val client = OkHttpClient()
     private val gson = Gson()
@@ -36,35 +36,35 @@ class RecipeWebSocketClient(
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.d(TAG, "✅ WebSocket connected successfully!")
+                Log.d(TAG, "WebSocket connected successfully!")
                 retryCount = 0 // Reset retry count on successful connection
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
-                Log.d(TAG, "📩 Received WebSocket message: $text")
+                Log.d(TAG, "Received WebSocket message: $text")
                 try {
-                    val recipe = gson.fromJson(text, Recipe::class.java)
-                    Log.d(TAG, "✅ Parsed recipe: ${recipe.title}")
-                    onRecipeAdded(recipe)
+                    val course = gson.fromJson(text, Course::class.java)
+                    Log.d(TAG, "Parsed course: ${course.name}")
+                    onCourseAdded(course)
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ Error parsing recipe: ${e.message}", e)
+                    Log.e(TAG, "Error parsing course: ${e.message}", e)
                 }
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "⚠️ WebSocket closing: code=$code, reason=$reason")
+                Log.d(TAG, "WebSocket closing: code=$code, reason=$reason")
                 webSocket.close(1000, null)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "🔴 WebSocket closed: code=$code, reason=$reason")
+                Log.d(TAG, "WebSocket closed: code=$code, reason=$reason")
                 if (!isManualDisconnect) {
                     scheduleReconnect()
                 }
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.e(TAG, "❌ WebSocket connection failed: ${t.message}", t)
+                Log.e(TAG, "WebSocket connection failed: ${t.message}", t)
                 Log.e(TAG, "Response: ${response?.code} ${response?.message}")
                 if (!isManualDisconnect) {
                     scheduleReconnect()

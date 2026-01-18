@@ -8,15 +8,20 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Recipe App Colors -->
-    <color name="primary">#FF6B35</color>
-    <color name="primary_dark">#E55A2B</color>
+    <!-- Course App Colors -->
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
     <color name="accent">#FFC107</color>
 
-    <color name="main_course">#4CAF50</color>
-    <color name="dessert">#E91E63</color>
-    <color name="appetizer">#FF9800</color>
-    <color name="beverage">#2196F3</color>
+    <!-- Course Status Colors -->
+    <color name="status_ongoing">#4CAF50</color>
+    <color name="status_upcoming">#FF9800</color>
+    <color name="status_completed">#9E9E9E</color>
+
+    <!-- Rank Colors (for top 5 analytics) -->
+    <color name="rank_gold">#FFD700</color>
+    <color name="rank_silver">#C0C0C0</color>
+    <color name="rank_bronze">#CD7F32</color>
 
     <color name="text_primary">#212121</color>
     <color name="text_secondary">#757575</color>
@@ -24,5 +29,4 @@
 
     <color name="card_background">#FFFFFF</color>
     <color name="background">#F5F5F5</color>
-    <color name="rating_star">#FFC107</color>
 </resources>

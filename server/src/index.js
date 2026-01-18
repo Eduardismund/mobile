@@ -1,11 +1,11 @@
-const koa = require('koa');
-const app = module.exports = new koa();
-const server = require('http').createServer(app.callback());
-const WebSocket = require('ws');
+const Koa = require("koa");
+const app = (module.exports = new Koa());
+const server = require("http").createServer(app.callback());
+const WebSocket = require("ws");
 const wss = new WebSocket.Server({ server });
-const Router = require('koa-router');
-const cors = require('@koa/cors');
-const bodyParser = require('koa-bodyparser');
+const Router = require("koa-router");
+const cors = require("@koa/cors");
+const bodyParser = require("koa-bodyparser");
 
 app.use(bodyParser());
 app.use(cors());
@@ -15,75 +15,173 @@ function middleware(ctx, next) {
   const start = new Date();
   return next().then(() => {
     const ms = new Date() - start;
-    console.log(`${start.toLocaleTimeString()} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} - ${ms}ms`);
+    console.log(
+      `${start.toLocaleTimeString()} ${ctx.response.status} ${
+        ctx.request.method
+      } ${ctx.request.url} - ${ms}ms`
+    );
   });
 }
 
-const recipes = [
-  { id: 1, date: '2025-01-15', title: 'Spaghetti Carbonara', ingredients: 'Spaghetti, Eggs, Bacon, Parmesan', category: 'Main Course', rating: 4.5 },
-  { id: 2, date: '2025-01-16', title: 'Chocolate Cake', ingredients: 'Flour, Cocoa Powder, Eggs, Sugar, Butter', category: 'Dessert', rating: 4.8 },
-  { id: 3, date: '2025-01-17', title: 'Caesar Salad', ingredients: 'Romaine Lettuce, Croutons, Parmesan, Caesar Dressing', category: 'Appetizer', rating: 4.2 },
-  { id: 4, date: '2025-01-18', title: 'Grilled Salmon', ingredients: 'Salmon, Lemon, Garlic, Olive Oil', category: 'Main Course', rating: 4.7 },
-  { id: 5, date: '2025-01-19', title: 'Banana Smoothie', ingredients: 'Banana, Milk, Honey, Ice', category: 'Beverage', rating: 4.3 },
-  { id: 6, date: '2025-02-20', title: 'Tomato Soup', ingredients: 'Tomatoes, Onion, Garlic, Basil, Cream', category: 'Appetizer', rating: 4.6 },
-  { id: 7, date: '2025-02-21', title: 'Beef Stroganoff', ingredients: 'Beef, Mushrooms, Onion, Sour Cream, Pasta', category: 'Main Course', rating: 4.4 },
-  { id: 8, date: '2025-02-22', title: 'Cheesecake', ingredients: 'Cream Cheese, Sugar, Eggs, Graham Crackers', category: 'Dessert', rating: 4.9 },
-  { id: 9, date: '2025-02-23', title: 'Margarita Pizza', ingredients: 'Pizza Dough, Tomato Sauce, Mozzarella, Basil', category: 'Main Course', rating: 4.6 },
-  { id: 10, date: '2025-02-24', title: 'Greek Salad', ingredients: 'Cucumber, Tomato, Feta Cheese, Olives, Olive Oil', category: 'Appetizer', rating: 4.3 }
+const courses = [
+  {
+    id: 1,
+    name: "Mobile App Development",
+    instructor: "Dr. John Smith",
+    description: "Learn to build Android and iOS apps.",
+    status: "ongoing",
+    students: 25,
+    duration: 40,
+  },
+  {
+    id: 2,
+    name: "Machine Learning Basics",
+    instructor: "Prof. Alice Johnson",
+    description: "Introduction to AI and ML techniques.",
+    status: "upcoming",
+    students: 18,
+    duration: 35,
+  },
+  {
+    id: 3,
+    name: "Web Development Bootcamp",
+    instructor: "Mr. Robert Brown",
+    description: "Master HTML, CSS, JavaScript, and modern frameworks.",
+    status: "ongoing",
+    students: 30,
+    duration: 50,
+  },
+  {
+    id: 4,
+    name: "Cybersecurity Fundamentals",
+    instructor: "Dr. Laura White",
+    description: "Learn how to protect systems from cyber threats.",
+    status: "completed",
+    students: 15,
+    duration: 45,
+  },
+  {
+    id: 5,
+    name: "Data Structures & Algorithms",
+    instructor: "Prof. Kevin Lee",
+    description: "Deep dive into efficient problem-solving techniques.",
+    status: "ongoing",
+    students: 22,
+    duration: 60,
+  },
+  {
+    id: 6,
+    name: "Cloud Computing Essentials",
+    instructor: "Dr. Emily Davis",
+    description: "Introduction to AWS, Azure, and cloud technologies.",
+    status: "upcoming",
+    students: 20,
+    duration: 55,
+  },
+  {
+    id: 7,
+    name: "Blockchain & Cryptocurrency",
+    instructor: "Prof. Mark Taylor",
+    description: "Understand blockchain, smart contracts, and crypto.",
+    status: "ongoing",
+    students: 12,
+    duration: 30,
+  },
+  {
+    id: 8,
+    name: "Game Development with Unity",
+    instructor: "Mr. David Martinez",
+    description: "Create interactive games using Unity and C#.",
+    status: "ongoing",
+    students: 28,
+    duration: 70,
+  },
+  {
+    id: 9,
+    name: "UI/UX Design Principles",
+    instructor: "Ms. Sophia Wilson",
+    description: "Master user interface and user experience design.",
+    status: "completed",
+    students: 10,
+    duration: 25,
+  },
+  {
+    id: 10,
+    name: "Big Data Analytics",
+    instructor: "Dr. Richard Harris",
+    description: "Learn how to process and analyze large datasets.",
+    status: "upcoming",
+    students: 17,
+    duration: 65,
+  },
 ];
+
 
 const router = new Router();
 
-router.get('/recipes', ctx => {
-  ctx.response.body = recipes;
+router.get("/courses", (ctx) => {
+  ctx.response.body = courses;
   ctx.response.status = 200;
 });
 
-router.get('/recipe/:id', ctx => {
+router.get("/allCourses", (ctx) => {
+  ctx.response.body = courses;
+  ctx.response.status = 200;
+});
+
+router.get("/course/:id", (ctx) => {
   const { id } = ctx.params;
-  const recipe = recipes.find(r => r.id == id);
-  if (recipe) {
-    ctx.response.body = recipe;
+  const course = courses.find((c) => c.id == id);
+  if (course) {
+    ctx.response.body = course;
     ctx.response.status = 200;
   } else {
-    ctx.response.body = { error: `Recipe with id ${id} not found` };
+    ctx.response.body = { error: `Course with id ${id} not found` };
     ctx.response.status = 404;
   }
 });
 
-router.post('/recipe', ctx => {
-  const { date, title, ingredients, category, rating } = ctx.request.body;
+router.post("/course", (ctx) => {
+  const { name, instructor, description, status, students, duration } =
+    ctx.request.body;
 
-  if (date && title && ingredients && category && rating) {
-    const id = recipes.length > 0 ? Math.max(...recipes.map(r => r.id)) + 1 : 1;
-    const newRecipe = { id, date, title, ingredients, category, rating };
-    recipes.push(newRecipe);
+  if (name && instructor && description && status && students && duration) {
+    const id = courses.length > 0 ? Math.max(...courses.map((c) => c.id)) + 1 : 1;
+    const newCourse = {
+      id,
+      name,
+      instructor,
+      description,
+      status,
+      students,
+      duration,
+    };
+    courses.push(newCourse);
 
-    broadcast(newRecipe);
-    ctx.response.body = newRecipe;
+    broadcast(newCourse);
+    ctx.response.body = newCourse;
     ctx.response.status = 201;
   } else {
-    ctx.response.body = { error: "Missing or invalid recipe details" };
+    const errorMessage = `Missing or invalid fields name: ${name},
+        instructor: ${instructor}, description: ${description}, status: ${status},
+        students: ${students}, duration: ${duration}`;
+    console.log(errorMessage);
+    ctx.response.body = { error: errorMessage };
     ctx.response.status = 400;
   }
 });
 
-router.del('/recipe/:id', ctx => {
+router.delete("/course/:id", (ctx) => {
   const { id } = ctx.params;
-  const index = recipes.findIndex(r => r.id == id);
+  const index = courses.findIndex((c) => c.id == id);
   if (index !== -1) {
-    const removedRecipe = recipes.splice(index, 1)[0];
-    ctx.response.body = removedRecipe;
+    const deletedCourse = courses.splice(index, 1)[0];
+    ctx.response.body = deletedCourse;
     ctx.response.status = 200;
   } else {
-    ctx.response.body = { error: `Recipe with id ${id} not found` };
+    ctx.response.body = { error: `Course with id ${id} not found` };
     ctx.response.status = 404;
   }
-});
-
-router.get('/allRecipes', ctx => {
-  ctx.response.body = recipes;
-  ctx.response.status = 200;
 });
 
 const broadcast = (data) => {
@@ -97,8 +195,7 @@ const broadcast = (data) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-const port = 2528;
-
+const port = 2506;
 server.listen(port, () => {
-  console.log(`🚀 Server listening on ${port} ... 🚀`);
+  console.log(`Server running on port ${port}... 🚀`);
 });

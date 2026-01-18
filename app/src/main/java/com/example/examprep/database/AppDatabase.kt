@@ -4,12 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.examprep.model.Recipe
+import com.example.examprep.model.Course
 
-@Database(entities = [Recipe::class], version = 1, exportSchema = false)
+@Database(entities = [Course::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun recipeDao(): RecipeDao
+    abstract fun courseDao(): CourseDao
 
     companion object {
         @Volatile
@@ -20,8 +20,10 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "recipe_database"
-                ).build()
+                    "course_database"
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

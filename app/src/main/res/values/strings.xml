@@ -1,3 +1,51 @@
 <resources>
-    <string name="app_name">ExamPrep</string>
+    <string name="app_name">Course Manager</string>
+
+    <!-- Activity Titles -->
+    <string name="instructor_section">Instructor - Course Management</string>
+    <string name="student_section">Student - Available Courses</string>
+    <string name="analytics_section">Analytics - Top Courses</string>
+    <string name="add_course">Add Course</string>
+    <string name="edit_course">Edit Course</string>
+    <string name="course_details">Course Details</string>
+
+    <!-- Button Labels -->
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="cancel">Cancel</string>
+    <string name="retry">Retry</string>
+    <string name="add_course_btn">+ Add Course</string>
+    <string name="student_view_btn">Student View</string>
+    <string name="analytics_btn">Analytics</string>
+
+    <!-- Messages -->
+    <string name="no_courses">No courses found</string>
+    <string name="pull_to_refresh">Pull to refresh</string>
+    <string name="delete_course">Delete Course</string>
+    <string name="delete_confirm">Are you sure you want to delete this course?</string>
+    <string name="course_deleted">Course deleted successfully</string>
+    <string name="course_saved">Course saved successfully</string>
+    <string name="course_saved_offline">Course saved locally. Will sync when online.</string>
+    <string name="online_only">This feature requires internet connection</string>
+
+    <!-- Form Labels -->
+    <string name="label_name">Course Name</string>
+    <string name="label_instructor">Instructor</string>
+    <string name="label_description">Description</string>
+    <string name="label_status">Status</string>
+    <string name="label_students">Students</string>
+    <string name="label_duration">Duration (hours)</string>
+
+    <!-- Course Status -->
+    <string name="status_ongoing">Ongoing</string>
+    <string name="status_upcoming">Upcoming</string>
+    <string name="status_completed">Completed</string>
+
+    <!-- Hints -->
+    <string name="hint_name">Enter course name</string>
+    <string name="hint_instructor">Enter instructor name</string>
+    <string name="hint_description">Enter course description</string>
+    <string name="hint_students">Enter number of students</string>
+    <string name="hint_duration">Enter duration in hours</string>
 </resources>
